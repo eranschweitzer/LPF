@@ -1,0 +1,6 @@
+.DS_Store
+*~
+*conflict*
+
+*.csv
+notebooks/.ipynb_checkpoints/*
