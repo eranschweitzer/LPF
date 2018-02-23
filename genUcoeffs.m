@@ -118,7 +118,7 @@ if strcmp(only,'') || strcmp(only,'imag')
 			lambda.m = (Qd - Qg).*ctmp0.^(-1) + ctmp0.*(bsh + F'*(b0./tau.^2) + T'*b0);
 		else
 			lambda.m.f = (F*ctmp0).*b0./tau.^2;
-			lambda.m.t = b0;
+			lambda.m.t = (T*ctmp0).*b0;
 		end
 		%%%%%%%%%%% psi and nu %%%%%%%%%%%
 		if ids.AB == 1
@@ -142,17 +142,23 @@ if strcmp(only,'') || strcmp(only,'imag')
 			lambda.m.f = 0; lambda.m.t = 0;
 		end
 		%%%%%%%%%%% psi and nu %%%%%%%%%%%
+		ctf = (T*ctmp)./(F*ctmp);
+		cft = (F*ctmp)./(T*ctmp);
 		if ids.AB == 1
-			psi.f.m = b./tau.*cos(tshift) + g./tau.*sin(tshift);
+			%psi.f.m = b./tau.*cos(tshift) + g./tau.*sin(tshift);
+			psi.f.m = ctf.*( b./tau.*cos(tshift) + g./tau.*sin(tshift) );
 			psi.t.m = psi.f.m;
 	
-			nu.f.m = -b./tau.*cos(tshift) + g./tau.*sin(tshift);
+			%nu.f.m = -b./tau.*cos(tshift) + g./tau.*sin(tshift);
+			nu.f.m = -cft.*( b./tau.*cos(tshift) - g./tau.*sin(tshift) );
 			nu.t.m = nu.f.m;
 		else
-			psi.f.m = b./tau.^(2);
+			%psi.f.m = b./tau.^(2);
+			psi.f.m = ctf.*b./tau.^(2);
 			psi.t.m = psi.f.m;
 	
-			nu.f.m  = -b;
+			%nu.f.m  = -b;
+			nu.f.m  = -b.*cft;
 			nu.t.m  = nu.f.m;
 		end
 	end

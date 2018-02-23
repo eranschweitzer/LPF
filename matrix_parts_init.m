@@ -23,6 +23,11 @@ elseif length(fieldnames(ids)) == 12
     Aru = diags(lambda.r) + F'*(diags(psi.f.r)*F - diags(psi.t.r)*T) + T'*(diags(nu.f.r)*F - diags(nu.t.r)*T);
     Amt = F'*diags(gammas.f.r)*E + T'*diags(gammas.t.r)*E;
     Amu = diags(lambda.m) + F'*(diags(psi.f.m)*F - diags(psi.t.m)*T) + T'*(diags(nu.f.m)*F - diags(nu.t.m)*T);
+    
+    if ids.c < 2
+        br  = br + Aru*u0;
+        bm  = bm + Amu*u0;
+    end
 else
     error('Incorrect Ids structures. Number of fields is %d',  length(fieldnames(ids)))
 end

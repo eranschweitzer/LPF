@@ -33,9 +33,6 @@ for Q = 1:2
 											elseif (AB==2) && (gr == 1) && (Omr == 1)
 												% Omega_r is 0 when gr = 1 under option 2
 												continue
-											elseif (Q == 2) && (c == 1) && ((Omi == 1) || (Gamr == 1) )
-												% initial voltages dont play a role under Q=2 in Omega or Gamma
-												continue
 											end
 											IDs{idx} = sprintf('0%d%d%d%d%d%d%d%d%d%d%d',...
 																Q, AB, c, gr, gi, Omr, Gami, Kr, Omi, Gamr, Ki );

@@ -1,4 +1,4 @@
-function betas = genBetas(ids, F, T, E, u0, Sb, Sp,varargin)
+function betas = genBetas(ids, F, T, E, u0, Sb, Sp, varargin)
 
 branch_flag = varargin_parse(varargin, 'branch', false);
 only   = varargin_parse(varargin, 'only', '');
@@ -9,15 +9,15 @@ if ~branch_flag
 	if ids.c == 2
 		ctmp0 = ones(size(u0));
 		ctmp  = ones(size(u0));
-		u0tmp = zeros(size(u0));
+		%u0tmp = zeros(size(u0));
 	elseif ids.c == 1
 		ctmp0 = exp(u0);
 		ctmp = ones(size(u0));
-		u0tmp = zeros(size(u0));
+		%u0tmp = zeros(size(u0));
 	else
 		ctmp0 = exp(u0);
 		ctmp  = exp(u0);
-		u0tmp = u0;
+		%u0tmp = u0;
 	end
 else
 	Pg = 0; Pd = 0; 
@@ -25,11 +25,11 @@ else
 	if ids.c > 0
 		ctmp0 = ones(size(u0));
 		ctmp  = ones(size(u0));
-		u0tmp = zeros(size(u0));
+		%u0tmp = zeros(size(u0));
 	else
 		ctmp0 = exp(u0);
 		ctmp  = exp(u0);
-		u0tmp = u0;
+		%u0tmp = u0;
 	end
 end
 
@@ -111,12 +111,18 @@ if strcmp(only,'') || strcmp(only,'imag')
 		%%%%%%% self %%%%%%%%%
 		betas.sh.m = (Qd - Qg).*ctmp0.^(-2) - bsh;
 		%%%%%% cross %%%%%%%
+		ctf = (T*ctmp)./(F*ctmp);
+		cft = (F*ctmp)./(T*ctmp);
 		if ids.AB == 1
-				betas.f.m = (b0./(tau.^2)) - b./(tau.^2).*(tau.*cos(tshift).*(1 - (E*u0tmp)) - 1) - g./tau.*sin(tshift).*(1 - (E*u0tmp));
-				betas.t.m = b0 + b.*(1 - cos(tshift)./tau.*(1 + (E*u0tmp) ) ) + g./tau.*sin(tshift).*(1 + (E*u0tmp) );
+				betas.f.m = (b0./(tau.^2)) - b./(tau.^2).*( ctf.*tau.*cos(tshift) - 1) - g./tau.*sin(tshift).*ctf;
+				betas.t.m = b0 + b.*(1 - cft.*cos(tshift)./tau ) + g./tau.*sin(tshift).*cft;
+				%betas.f.m = (b0./(tau.^2)) - b./(tau.^2).*(tau.*cos(tshift).*(1 - (E*u0tmp)) - 1) - g./tau.*sin(tshift).*(1 - (E*u0tmp));
+				%betas.t.m = b0 + b.*(1 - cos(tshift)./tau.*(1 + (E*u0tmp) ) ) + g./tau.*sin(tshift).*(1 + (E*u0tmp) );
 		else
-				betas.f.m = b0./(tau.^2) - b./(tau.^2).*(log(tau) - (E*u0tmp) ) - g./(tau.^2).*tshift;
-				betas.t.m = b0 + b.*( log(tau) - (E*ctmp) ) + g.*tshift;
+				betas.f.m = b0./(tau.^2) - b./(tau.^2).*(ctf.*(1 + log(tau)) - 1 ) - g./(tau.^2).*tshift.*ctf;
+				betas.t.m = b0 + b.*( 1 - cft.*( 1 - log(tau)) ) + g.*tshift.*cft;
+				%betas.f.m = b0./(tau.^2) - b./(tau.^2).*(log(tau) - (E*u0tmp) ) - g./(tau.^2).*tshift;
+				%betas.t.m = b0 + b.*( log(tau) - (E*u0tmp) ) + g.*tshift;
 		end
 	end
 end

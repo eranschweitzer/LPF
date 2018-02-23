@@ -2,7 +2,7 @@ clear variables; close all;
 %% load case
 define_constants;
 % casename = '/Users/eran/Dropbox/ASU/SINE/python/parameter_assignment/test118minloss';
-casename = 'case30';%case1888rte';%'case118';%'case24_ieee_rts';%'case3375wp';%'case1354pegase';%'case6470rte';%'case13659pegase';%'case_ACTIVSg2000';%%;%'case6470rte'%'case_ACTIVSg10k';
+casename = 'case118';%'case1888rte';%'case24_ieee_rts';%'case3375wp';%'case1354pegase';%'case6470rte';%'case13659pegase';%'case_ACTIVSg2000';%%;%'case6470rte'%'case_ACTIVSg10k';
 mpc = loadcase(casename);
 % id = '0000000000000';
 % id = '011000000000';

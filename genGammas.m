@@ -41,12 +41,18 @@ if strcmp(only,'') || strcmp(only,'imag')
 			gammas.t.r = -g.*(F*ctmp);
 		end
 	else
+		ctf = (T*ctmp)./(F*ctmp);
+		cft = (F*ctmp)./(T*ctmp);
 		if ids.AB == 1
-			gammas.f.r =  g./tau.*cos(tshift) - b./tau.*sin(tshift);
-			gammas.t.r = -g./tau.*cos(tshift) - b./tau.*sin(tshift);
+			gammas.f.r =  ctf.*( g./tau.*cos(tshift) - b./tau.*sin(tshift) );
+			gammas.t.r = -cft.*( g./tau.*cos(tshift) + b./tau.*sin(tshift) );
+			%gammas.f.r =  g./tau.*cos(tshift) - b./tau.*sin(tshift);
+			%gammas.t.r = -g./tau.*cos(tshift) - b./tau.*sin(tshift);
 		else
-			gammas.f.r =  g./tau.^2;
-			gammas.t.r = -g;
+			gammas.f.r =  ctf.*g./tau.^2;
+			gammas.t.r = -g.*cft;
+			%gammas.f.r =  g./tau.^2;
+			%gammas.t.r = -g;
 		end
 	end
 end

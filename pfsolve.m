@@ -19,11 +19,16 @@ switch ids.iter
         [Art,Aru,Amt,Amu,br,bm] = matrix_parts_init(ids,F,T,E,u0,Sb,Sp,'Gw',Gw,'phi',phi);
         [matI,matU] = pv_ref_mats(bidx,N,u0,ids);
         x    = single_solve(Art,Aru,Amt,Amu,br,bm,matI,matU,theta_ref,N);
-        vars = result_parse(x,u0,N,ids);
-        vars.convg = 1;
-        u          = vlimit(vars.u0+vars.uhat,E,'uopt',uopt);
-        vars.uhat  = u - vars.u0;
-        vars.v     = exp(u);
+        if length(fieldnames(ids)) == 12 
+            vars = result_parse(x,u0,N,'uvar', 'u');
+            vars.v     = exp(vars.u);
+        else
+            vars = result_parse(x,u0,N);
+            u    = vlimit(vars.u0+vars.uhat,E,'uopt',uopt);
+            vars.uhat  = u - vars.u0;
+            vars.v     = exp(u);
+        end
+        vars.convg = 1;      
         vars.phi   = phi;
     case 1
         % Only phi iteration
