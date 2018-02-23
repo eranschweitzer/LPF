@@ -16,6 +16,6 @@ if strcmp(pq,'real')
 	S.f = real(S.f);
 	S.t = real(S.t);
 elseif strcmp(pq, 'imag')
-	S.f = imag(S.f) ;%- (bc/2).*(1 + F*vars.u).^2;
-	S.t = imag(S.t) ;%- (bc/2).*(1 + T*vars.u).^2;
+	S.f = imag(S.f) - (bc/2).*(1 + F*vars.u).^2;
+	S.t = imag(S.t) - (bc/2).*(1 + T*vars.u).^2;
 end

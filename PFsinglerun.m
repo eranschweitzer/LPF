@@ -47,7 +47,9 @@ theta_ref = mpc.bus(bidx.ref,VA)*pi/180;
 % [matI,matU] = pv_ref_mats(bidx,N,u0);
 %% load and generation
 Sp = powervectors(mpc,gmap);
-
+Sp.Qg(bidx.pv) = 0;
+Sp.Qg(bidx.ref) = 0;
+Sp.Pg(bidx.ref) = 0;
 %% branch parts
 Sb = BranchParts(mpc);
 Gw = branchweights(Sb,'GwAru',GwAru,'GwAmu',GwAmu,'bcmode',bcmode,'bshmode',bshmode);
