@@ -2,7 +2,7 @@ clear variables; close all;
 %% load case
 define_constants;
 % casename = '/Users/eran/Dropbox/ASU/SINE/python/parameter_assignment/test118minloss';
-casename = 'case118';%'case1888rte';%'case24_ieee_rts';%'case3375wp';%'case1354pegase';%'case6470rte';%'case13659pegase';%'case_ACTIVSg2000';%%;%'case6470rte'%'case_ACTIVSg10k';
+casename = 'case1888rte';%'case118';%'case24_ieee_rts';%'case3375wp';%'case1354pegase';%'case6470rte';%'case13659pegase';%'case_ACTIVSg2000';%%;%'case6470rte'%'case_ACTIVSg10k';
 mpc = loadcase(casename);
 % id = '0000000000000';
 % id = '011000000000';
@@ -18,8 +18,13 @@ GwAru = 'default';
 GwAmu = 'default';
 bcmode= 'default';
 bshmode= 'default';
-udefault = 'uref';
+udefault = 'uref';%{0,'uref'};
 uopt   = 'none';
+lsqr   = false;
+plots  = true;
+id = '022020011000'; %apparent winner
+% id = {'011021011010', '021021011010'};%, '021220011111'};
+% id = '021220011111';
 
 N = struct('t',size(mpc.bus,1));
 M = size(mpc.branch,1);
@@ -73,15 +78,20 @@ vtrue.qt  = mpcac.branch(:,QT);     %true reactive power at to bus [MVAr]
 %% Main Loop
 
 ids  = str2ids(id);
+if lsqr
+    ids = makeop(ids,u0);
+end
 vars = pfsolve(ids,F,T,E,Sb,Sp,bidx,theta_ref,N,u0,...
-               'itermax',itermax,'Gw',Gw,'uopt',uopt);
+               'itermax',itermax,'Gw',Gw,'uopt',uopt, 'lsqr', lsqr);
 if ~vars.convg
     return
 end
 % Evaluation criteria for voltage and angle 
 Cv   = eval_criteria(vars.v,vtrue.v);
 Ct   = eval_criteria(vars.theta,vtrue.t);
-
+if plots
+    vt_comp_plots(vars,vtrue)
+end
 % Evalutaion criteria for flow calculation
 if length(id) ~= 13
     flids = flowids();

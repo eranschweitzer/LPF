@@ -1,5 +1,11 @@
 function ids = str2ids(s)
-
+if iscell(s)
+   ids = cell(length(s),1);
+   for k = 1:length(s)
+       ids{k} = str2ids(s{k});
+   end
+   return
+end
 if length(s) == 13
     ids.iter = str2double(s(1));
     ids.Art  = str2double(s(2));

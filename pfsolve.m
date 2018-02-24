@@ -7,12 +7,31 @@ itermax = varargin_parse(varargin,'itermax',25);
 % GwAmu = varargin_parse(varargin,'GwAmu','default');
 Gw  = varargin_parse(varargin,'Gw',branchweights(Sb));
 phi = varargin_parse(varargin,'phi',0);
-if ids.iter == 0
-    uopt = varargin_parse(varargin,'uopt','none');
-else
-    uopt = varargin_parse(varargin,'uopt','flat');
+lsqr = varargin_parse(varargin,'lsqr', false);
+try
+    if ids.iter == 0
+        uopt = varargin_parse(varargin,'uopt','none');
+    else
+        uopt = varargin_parse(varargin,'uopt','flat');
+    end
+catch ME
+    if lsqr
+        % least squares case
+        uopt = varargin_parse(varargin,'uopt','none');
+    else
+        rethrow(ME)
+    end
 end
+
 %%
+if lsqr
+   x = least_squares_solve(ids,F,T,E,Sb,Sp,bidx,theta_ref,N);
+   vars = result_parse(x,u0,N,'uvar', 'u');
+   vars.v     = exp(vars.u);
+   vars.convg = 1;      
+   vars.phi   = phi;
+   return
+end
 switch ids.iter
     case 0
         % No iteration
