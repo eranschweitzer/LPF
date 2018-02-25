@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS linpf.cases(
 
 INSERT INTO linpf.cases (name) VALUES
 	('case24_ieee_rts'),
-	('case_ieee30'),
+	('case30'),
 	('case57'),
 	('case118'),
 	('case145'),
@@ -39,7 +39,7 @@ INSERT INTO linpf.cases (name) VALUES
 	('case2736sp'),
 	('case2737sop'),
 	('case2746wop'),
-	('case2746wp'),`
+	('case2746wp'),
 	('case2848rte'),
 	('case2868rte'),
 	('case2869pegase'),
@@ -50,14 +50,16 @@ INSERT INTO linpf.cases (name) VALUES
 	('case6470rte'),
 	('case6495rte'),
 	('case6515rte'),
-	('case9241pegase');
+	('case9241pegase'),
+	('case_ACTIVSg2000'),
+	('case_ACTIVSg10k');
 
-CREATE TABLE IF NOT EXISTS linpf.idmap(
-	idint SMALLSERIAL,
-	id VARCHAR(12),
-	PRIMARY KEY(idint)
-);
-
-INSERT INTO linpf.idmap (id) SELECT distinct id from linpf.vt ORDER BY id;
-CREATE UNIQUE INDEX ON linpf.idmap(id);
+--CREATE TABLE IF NOT EXISTS linpf.idmap(
+--	idint SMALLSERIAL,
+--	id VARCHAR(12),
+--	PRIMARY KEY(idint)
+--);
+--
+--INSERT INTO linpf.idmap (id) SELECT distinct id from linpf.vt ORDER BY id;
+--CREATE UNIQUE INDEX ON linpf.idmap(id);
 

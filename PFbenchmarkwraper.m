@@ -1,6 +1,6 @@
 clear variables; close all;
 %%
-batchsize = 1776/24;
+batchsize = 1968/24;
 precheck = false;
 tablename= struct('vt', 'linpf.vt', 'flow', 'linpf.flows');
 GwAru    = 'default';

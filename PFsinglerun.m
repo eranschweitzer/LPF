@@ -89,8 +89,9 @@ end
 % Evaluation criteria for voltage and angle 
 Cv   = eval_criteria(vars.v,vtrue.v);
 Ct   = eval_criteria(vars.theta,vtrue.t);
+Ctd  = eval_criteria(E*vars.theta, E*vtrue.t);
 if plots
-    vt_comp_plots(vars,vtrue)
+    vt_comp_plots(vars,vtrue, E)
 end
 % Evalutaion criteria for flow calculation
 if length(id) ~= 13

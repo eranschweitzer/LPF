@@ -48,7 +48,9 @@ theta_ref = mpc.bus(bidx.ref,VA)*pi/180;
 % [matI,matU] = pv_ref_mats(pv_idx,ref_idx,Npv,Nref,N,u0);
 %% load and generation
 Sp = powervectors(mpc,gmap);
-
+Sp.Qg(bidx.pv) = 0;
+Sp.Qg(bidx.ref) = 0;
+Sp.Pg(bidx.ref) = 0;
 %% branch parts
 Sb = BranchParts(mpc);
 Gw = branchweights(Sb,'GwAru',GwAru,'GwAmu',GwAmu,'bcmode',bcmode,'bshmode',bshmode);
@@ -134,11 +136,12 @@ for batch = 1:ceil(Ntotal/batchsize)
                 % Evaluation criteria for voltage and angle (in radians)
                 Cv   = eval_criteria(vars.v,vtrue.v);
                 Ct   = eval_criteria(vars.theta, vtrue.t*pi/180);
+                Ctd  = eval_criteria(E*vars.theta, E*vtrue.t*pi/180);
                 flids = flowids();
                 Cf = flow_performance(flids, ids, vars, vtrue, F, T, E, Sb, baseMVA);
                 
 %                 Tres = struct();
-                Tres{k}    = resprep_vt(ids, Cv, Ct, caseid);
+                Tres{k}    = resprep_vt(ids, Cv, Ct, Ctd, caseid);
                 Tres2{k}   = resprep_flow(ids,flids,Cf,caseid);
 %                 result2db(tablename, colnames, Tres);
 %                 if ~flag
