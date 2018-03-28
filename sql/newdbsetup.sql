@@ -54,12 +54,12 @@ INSERT INTO linpf.cases (name) VALUES
 	('case_ACTIVSg2000'),
 	('case_ACTIVSg10k');
 
---CREATE TABLE IF NOT EXISTS linpf.idmap(
---	idint SMALLSERIAL,
---	id VARCHAR(12),
---	PRIMARY KEY(idint)
---);
---
---INSERT INTO linpf.idmap (id) SELECT distinct id from linpf.vt ORDER BY id;
---CREATE UNIQUE INDEX ON linpf.idmap(id);
+CREATE TABLE IF NOT EXISTS linpf.idmap(
+	idint SMALLSERIAL,
+	id VARCHAR(12),
+	PRIMARY KEY(idint)
+);
+
+INSERT INTO linpf.idmap (id) SELECT distinct id from linpf.vt ORDER BY id;
+CREATE UNIQUE INDEX ON linpf.idmap(id);
 

@@ -1,17 +1,32 @@
 function synth_compare_plots(Thist,varargin)
 plt_title  = varargin_parse(varargin,'title', '');
 fnt_size   = varargin_parse(varargin,'FontSize', 16);
+groupcnt  = varargin_parse(varargin,'groups',0);
 
+cmap = [0.8500    0.3250    0.0980
+        0.9290    0.6940    0.1250
+        0.4940    0.1840    0.5560
+        0.4660    0.6740    0.1880
+        0.3010    0.7450    0.9330
+        0.6350    0.0780    0.1840
+        0         0.4470    0.7410];
+        
 ind = numel(Thist);
 if (ind == 1) && iscell(Thist)
     Thist = Thist{1};
+end
+if groupcnt ~= 0
+   groupcnt = cumsum(groupcnt);
+else
+   groupcnt = ind;
 end
 
 inputs = {...
         struct('prop','delta', 'label', 'Angel Difference [degrees]'),...
         struct('prop','pf',    'label', 'Real Power (from-end) [MW]'),...
         struct('prop', 'qf',   'label', 'Reactive Power (from-end) [MVAr]'),...
-        struct('prop', 'sf',   'label', 'Apparent Power (from-end) [MVA]')};
+        struct('prop', 'sf',   'label', 'Apparent Power (from-end) [MVA]'),...
+        struct('prop', 'sil',   'label', 'Fraction of SIL')};
     
 for k = inputs
     figure;
@@ -27,7 +42,8 @@ for k = inputs
     hold on;
     if ind >  1
         for i = 1:ind
-            plot(Thist{i}.(xl),Thist{i}.(ylsynth),'-*','color',[0.8500    0.3250    0.0980]);
+            c = find(groupcnt >= i, 1);
+            plot(Thist{i}.(xl),Thist{i}.(ylsynth),'-*','color',cmap(c,:));
         end
     else
         plot(Thist.(xl),Thist.(ylsynth),'-*');
@@ -54,7 +70,8 @@ for k = inputs
     hold on;
     if ind >  1
         for i = 1:ind
-            plot(Thist{i}.q,Thist{i}.(ylsynth),'--','color',[0.8500    0.3250    0.0980]);
+            c = find(groupcnt >= i, 1);
+            plot(Thist{i}.q,Thist{i}.(ylsynth),'--','color',cmap(c,:));
             ymax = max(ymax,max(Thist{i}.(ylsynth)));
         end
     else
@@ -77,6 +94,17 @@ for k = inputs
     ax.YLim(1) = 1e-5;
 end
 
+if length(groupcnt) > 1
+    figure;
+    title('legend')
+    for k = 1:length(groupcnt)
+        plot([0 1], [k k], 'color', cmap(k,:))
+        text(0.5,k, sprintf('group %d', k))
+        if k == 1
+            hold on;
+        end
+    end
+end
 %% Angle
 % figure;
 % subplot(1,2,1)

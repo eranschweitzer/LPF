@@ -1,4 +1,4 @@
-function [Thist, fitness, Tsamp, C] = synth_compare(synmpc, casename, varargin)
+function [Thist, fitness, Tsamp, C, mpc] = synth_compare(synmpc, casename, varargin)
 %%% filename: name of synthetic case to be analyzed
 %%% casename: name of Matpower case to compare to (optional)
 %%% Name, Value:
@@ -8,11 +8,37 @@ make_plots = varargin_parse(varargin,'plot', false);
 plt_title  = varargin_parse(varargin,'title', '');
 %% load case
 define_constants;
-mpopt   = mpoption; mpopt.out.all = 0;
+mpopt = mpoption('opf.dc.solver', 'MIPS', 'opf.ac.solver', 'IPOPT', 'mips.step_control', 1);
+% mpopt.opf.init_from_mpc = 1;
+mpopt.out.all = 0;
+mpopt.verbose = 0;
+s = struct();
+for prop = {'VMAX', 'RATE_A', 'PMAX', 'QMIN', 'QMAX'}
+    %%% VMIN and PMIN are automatically set to with a bound of 0
+    s.(prop{1}).type = 'unbnd';
+end
+for prop = {'ANGMIN', 'ANGMAX'}
+    s.(prop{1}).type = 'none';
+end
 if ischar(synmpc)
     synmpc     = loadcase(synmpc);
 end
-mpcsolve = runpf(synmpc,mpopt);
+synmpc.bus(:,VMAX) = 1.1;
+synmpc.bus(:,VMIN) = 0.9;
+
+synmpc.softlims = s;
+synmpc   = toggle_softlims(synmpc,'on');
+for k = 1:3
+    mpcsolve = runopf(synmpc,mpopt);
+    if mpcsolve.success
+        break
+    end
+end
+if ~mpcsolve.success
+    Thist = NaN; fitness = NaN; Tsamp = NaN; C = NaN;
+    warning('Synthetic case failed to converge')
+    return
+end
 %%
 N = size(synmpc.bus,1);
 M = size(synmpc.branch,1);
@@ -50,9 +76,22 @@ Tsamp = struct('v',synmpc.bus(:,VM),'vtrue',mpcsolve.bus(:,VM),...
        'sf', S.f*synmpc.baseMVA, 'sftrue', abs(mpcsolve.branch(:,PF) + 1i*mpcsolve.branch(:,QF)));
 Tsamp = mystruct2table(Tsamp);
 %% comparison to a matpower case case
-mpc = loadcase(casename);
-mpc = runpf(mpc,mpopt);
-
+if ischar(casename)
+    mpc = loadcase(casename);
+    mpc.bus(:,VMAX) = 1.1;
+    mpc.bus(:,VMIN) = 0.9;
+    mpc.softlims = s;
+    sgc = size(mpc.gencost,1);
+    mpc.gencost(:,1) = 2;
+    mpc.gencos = [mpc.gencost(:,1:3) 2*ones(sgc,1) 10*ones(sgc,1) zeros(sgc,1)];
+    mpc = toggle_softlims(mpc, 'on');
+    mpc = runopf(mpc,mpopt);
+    if ~mpc.success
+        error('Reference case failed to solve')
+    end
+else
+    mpc = casename;
+end
 N2 = size(mpc.bus,1);
 M2 = size(mpc.branch,1);
 nmap2  = sparse(mpc.bus(:,BUS_I),1,1:N2);
@@ -119,6 +158,31 @@ Thist.sfsynthq  = quantile(abs(Ssynth),Thist.q);
 
 fitness.kl.sf = kld(Thist.sfsynth, Thist.sfmpc, Thist.sfedges, 'two_sample', true);
 fitness.bc.sf = bc(Thist.sfsynth.*diff(Thist.sfedges), Thist.sfmpc.*diff(Thist.sfedges));
+
+%% SIL
+SILmpc   = SIL_loading(mpc, 'xfmr_chk', 'lax');
+SILsynth = SIL_loading(mpcsolve, 'xfmr_chk', 'lax');
+silmax = max([SILmpc; SILsynth]);
+Thist.siledges   = (0:0.1:silmax+0.1);
+Thist.silcenters = Thist.siledges(1:end-1) + 0.5*diff(Thist.siledges);
+[Thist.silmpc,~]   = histcounts(SILmpc,...
+                               Thist.siledges,'Normalization','pdf');
+[Thist.silsynth,~] = histcounts(SILsynth,...
+                               Thist.siledges,'Normalization','pdf');
+Thist.silmpcq    = quantile(SILmpc,Thist.q);
+Thist.silsynthq  = quantile(SILsynth,Thist.q);
+
+fitness.kl.sil = kld(Thist.silsynth, Thist.silmpc, Thist.siledges, 'two_sample', true);
+fitness.bc.sil = bc(Thist.silsynth.*diff(Thist.siledges), Thist.silmpc.*diff(Thist.siledges));
+
+mu = mean(SILsynth);
+fitness.sil_exp.synth.mu = mu;
+fitness.sil_exp.synth.kl = kld(Thist.silsynth, 1/mu*exp(-Thist.silcenters/mu), Thist.siledges);
+fitness.sil_exp.synth.bc = bc(Thist.silsynth.*diff(Thist.siledges), 1/mu*exp(-Thist.silcenters/mu).*diff(Thist.siledges));
+mu = mean(SILmpc);
+fitness.sil_exp.real.mu  = mu;  
+fitness.sil_exp.real.kl = kld(Thist.silmpc, 1/mu*exp(-Thist.silcenters/mu), Thist.siledges);
+fitness.sil_exp.real.bc = bc(Thist.silmpc.*diff(Thist.siledges), 1/mu*exp(-Thist.silcenters/mu).*diff(Thist.siledges));
 %% Figures
 if ~make_plots
     return
