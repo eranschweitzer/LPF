@@ -2,12 +2,12 @@ clear variables; close all;
 %% load case
 define_constants;
 % casename = '/Users/eran/Dropbox/ASU/SINE/python/parameter_assignment/test118minloss';
-casename = 'case1888rte';%'case118';%'case24_ieee_rts';%'case3375wp';%'case1354pegase';%'case6470rte';%'case13659pegase';%'case_ACTIVSg2000';%%;%'case6470rte'%'case_ACTIVSg10k';
+casename = 'case3375wp';%'case1888rte';%'case118';%'case24_ieee_rts';%'case3375wp';%'case1354pegase';%'case6470rte';%'case13659pegase';%'case_ACTIVSg2000';%%;%'case6470rte'%'case_ACTIVSg10k';
 mpc = loadcase(casename);
 % id = '0000000000000';
 % id = '011000000000';
 % id = '022220111001';
-id = '022200000000';
+% id = '022200000000';
 % id = '1000000000000';
 % id  = '0315010010110';
 % id  = '0005000100000';
@@ -75,6 +75,8 @@ vtrue.pf  = mpcac.branch(:,PF);     %true real power at from bus [MW]
 vtrue.pt  = mpcac.branch(:,PT);     %true real power at to bus [MW]
 vtrue.qf  = mpcac.branch(:,QF);     %true reactive power at from bus [MVAr]
 vtrue.qt  = mpcac.branch(:,QT);     %true reactive power at to bus [MVAr]
+vtrue.sg  = gmap*(mpcac.gen(:,PG) + 1i*mpcac.gen(:,QG))/baseMVA;
+vtrue.residual = pfresidual(vtrue.v.*exp(1i*vtrue.t), myMakeYbus(F,T,Sb), real(vtrue.sg)-Sp.Pd, imag(vtrue.sg)-Sp.Qd );
 %% Main Loop
 
 ids  = str2ids(id);
@@ -90,8 +92,10 @@ end
 Cv   = eval_criteria(vars.v,vtrue.v);
 Ct   = eval_criteria(vars.theta,vtrue.t);
 Ctd  = eval_criteria(E*vars.theta, E*vtrue.t);
+Sg   = makeSg(vars,Sp,bidx,N);
+residual = pfresidual(vars.v.*exp(1i*vars.theta),myMakeYbus(F,T,Sb),real(Sg) - Sp.Pd, imag(Sg) - Sp.Qd);
 if plots
-    vt_comp_plots(vars,vtrue, E)
+    vt_comp_plots(vars,vtrue, E, residual, bidx)
 end
 % Evalutaion criteria for flow calculation
 if length(id) ~= 13
