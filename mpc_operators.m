@@ -19,7 +19,19 @@ bus_with_ongen = sum(gmap,2) > 0;
 %% bus types
 bidx = bustype_map(mpc,bus_with_ongen,gstat,nmap);
 N.pq = sum(bidx.pq); N.pv = sum(bidx.pv); N.ref= sum(bidx.ref);
+
+cnx = struct('F',struct(), 'T', struct());
+lidx = struct('F', struct(), 'T', struct());
+for field = {'pq', 'pv', 'ref'}
+    cnx.F.(field{1}) = F(:,bidx.(field{1}));
+    cnx.T.(field{1}) = T(:,bidx.(field{1}));
+    
+    lidx.F.(field{1}) = logical(sum(cnx.F.(field{1}),2));
+    lidx.T.(field{1}) = logical(sum(cnx.T.(field{1}),2));
+end
+
+
 %% form structure
 S = struct('N',N, 'M', M, 'G', G, 'baseMVA', baseMVA, 'nmap', nmap,...
     'E', E, 'F', F, 'T', T, 'gbus', gbus, 'gstat', gstat, 'gmap', gmap, ...
-    'bus_with_ongen', bus_with_ongen, 'bidx', bidx);
+    'bus_with_ongen', bus_with_ongen, 'bidx', bidx, 'cnx', cnx, 'lidx', lidx);

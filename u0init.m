@@ -3,7 +3,7 @@ function u0 = u0init(vg,bidx,varargin)
 udefault = varargin_parse(varargin,'udefault','uref');
 unearest = varargin_parse(varargin,'unearest',[]);
 if strcmp(udefault,'nearest') && isempty(unearest)
-    error('u0init: when using the nearest pv/ref bus method a vector of the nearest bus unearest must be provided.')
+    error('u0init: when using the nearest pv/ref bus method a vector of the nearest bus ''unearest'' must be provided.')
 end
 if iscell(udefault)
     u0 = cell(length(udefault),1);

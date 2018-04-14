@@ -1,11 +1,11 @@
-clear variables; close all;
+clear variables; %close all;
 %% load case
 define_constants;
 % casename = '/Users/eran/Dropbox/ASU/SINE/python/parameter_assignment/test118minloss';
 casename = 'case3375wp';%'case1888rte';%'case118';%'case24_ieee_rts';%'case3375wp';%'case1354pegase';%'case6470rte';%'case13659pegase';%'case_ACTIVSg2000';%%;%'case6470rte'%'case_ACTIVSg10k';
 mpc = loadcase(casename);
 % id = '0000000000000';
-% id = '011000000000';
+id = '021200000000';
 % id = '022220111001';
 % id = '022200000000';
 % id = '1000000000000';
@@ -22,7 +22,7 @@ udefault = 'uref';%{0,'uref'};
 uopt   = 'none';
 lsqr   = false;
 plots  = true;
-id = '022020011000'; %apparent winner
+% id = '022020011000'; %apparent winner
 % id = {'011021011010', '021021011010'};%, '021220011111'};
 % id = '021220011111';
 
