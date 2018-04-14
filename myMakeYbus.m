@@ -5,8 +5,10 @@ tronly = varargin_parse(varargin,'tronly',false);
 ys = Sb.g + 1i*Sb.b;
 
 if tronly
-    ytt = ys./Sb.tau;
-    yff = ytt;
+%     ytt = ys./Sb.tau;
+%     yff = ytt;
+    ytt = ys;
+    yff = (ytt)./Sb.tau.^2;
 else
     ytt = ys + 0.5*1i*Sb.bc;
     yff = (ytt)./Sb.tau.^2;
