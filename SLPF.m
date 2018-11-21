@@ -8,7 +8,8 @@ bcmode   = varargin_parse(varargin,'bcmode','default');
 bshmode  = varargin_parse(varargin,'bshmode','default');
 udefault = varargin_parse(varargin,'udefault','uref');
 uopt     = varargin_parse(varargin,'uopt','none');
-id       = varargin_parse(varargin,'id','0315010010110');
+% id       = varargin_parse(varargin,'id','0315010010110');
+id       = varargin_parse(varargin,'id','022200000000');
 %% load case
 define_constants;
 if ischar(mpc)
@@ -56,3 +57,7 @@ Gw = branchweights(Sb);
 ids  = str2ids(id);
 vars = pfsolve(ids,F,T,E,Sb,Sp,bidx,theta_ref,N,u0,...
                'itermax',itermax,'Gw',Gw,'uopt',uopt);
+if strcmp(id,'022200000000')
+  vars.p = zhigangflow(vars, F, T, E, Sb, 'pq', 'real');
+  vars.q = zhigangflow(vars, F, T, E, Sb, 'pq', 'imag');
+end
