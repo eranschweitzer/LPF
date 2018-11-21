@@ -7,6 +7,7 @@ mpcac   = runpf(mpc,mpopt);
 vtrue   = struct();
 vtrue.v = mpcac.bus(:,VM);        %true voltage magnitude solution
 vtrue.t = mpcac.bus(:,VA)*pi/180; %true voltage angle solution
+vtrue.delta = E*vtrue.t;          % true branch angle difference
 vtrue.phi = 0.5*(E*vtrue.t).^2;       %true phi (1/2)*(delta(theta))^2
 vtrue.pf  = mpcac.branch(:,PF);     %true real power at from bus [MW]
 vtrue.pt  = mpcac.branch(:,PT);     %true real power at to bus [MW]
