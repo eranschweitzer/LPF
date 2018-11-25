@@ -37,7 +37,7 @@ switch ids.iter
         % No iteration
         [Art,Aru,Amt,Amu,br,bm] = matrix_parts_init(ids,F,T,E,u0,Sb,Sp,'Gw',Gw,'phi',phi);
         [matI,matU] = pv_ref_mats(bidx,N,u0,ids);
-        x    = single_solve(Art,Aru,Amt,Amu,br,bm,matI,matU,theta_ref,N);
+        [x, A, b]    = single_solve(Art,Aru,Amt,Amu,br,bm,matI,matU,theta_ref,N);
         if length(fieldnames(ids)) == 12 
             vars = result_parse(x,u0,N,'uvar', 'u');
             vars.v     = exp(vars.u);
