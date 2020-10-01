@@ -2,12 +2,12 @@ clear variables; %close all;
 %% load case
 define_constants;
 % casename = '/Users/eran/Dropbox/ASU/SINE/python/parameter_assignment/test118minloss';
-casename = 'case3375wp';%'case1888rte';%'case118';%'case24_ieee_rts';%'case3375wp';%'case1354pegase';%'case6470rte';%'case13659pegase';%'case_ACTIVSg2000';%%;%'case6470rte'%'case_ACTIVSg10k';
+casename = 'case1888rte';%'case3375wp';%'case_ACTIVSg2000';%'case118';%'case24_ieee_rts';%'case3375wp';%'case1354pegase';%'case6470rte';%'case13659pegase';%'case_ACTIVSg2000';%%;%'case6470rte'%'case_ACTIVSg10k';
 mpc = loadcase(casename);
 % id = '0000000000000';
-id = '021200000000';
+% id = '021200000000';
 % id = '022220111001';
-% id = '022200000000';
+id = '022200000000';
 % id = '1000000000000';
 % id  = '0315010010110';
 % id  = '0005000100000';
@@ -25,24 +25,31 @@ plots  = true;
 % id = '022020011000'; %apparent winner
 % id = {'011021011010', '021021011010'};%, '021220011111'};
 % id = '021220011111';
-
-N = struct('t',size(mpc.bus,1));
-M = size(mpc.branch,1);
-G = size(mpc.gen,1);
-baseMVA = mpc.baseMVA;
+opmats = mpc_operators(mpc);
+v2struct(opmats);
+%% branch parts
+Sb = BranchParts(mpc);
+%% power vectors
+Sp = powervectors(mpc,gmap);
+%% vtrue
+vtrue = vtrue_struct(mpc,opmats, Sb, Sp);
+% N = struct('t',size(mpc.bus,1));
+% M = size(mpc.branch,1);
+% G = size(mpc.gen,1);
+% baseMVA = mpc.baseMVA;
 %% maps and operating matrices
-nmap  = sparse(mpc.bus(:,BUS_I),1,1:N.t);
-E  = sparse([1:M,1:M].',[full(nmap(mpc.branch(:,F_BUS)));full(nmap(mpc.branch(:,T_BUS)))],[ones(M,1);-1*ones(M,1)],M,N.t);
-F  = sparse(1:M,full(nmap(mpc.branch(:,F_BUS))),1,M,N.t);
-T  = sparse(1:M,full(nmap(mpc.branch(:,T_BUS))),1,M,N.t);
-gbus  = full(nmap(mpc.gen(:,GEN_BUS))); %generator buses
-gstat = mpc.gen(:,GEN_STATUS) > 0;  % mask of dispatched generators
-gmap  = sparse(gbus,1:G,gstat,N.t,G); %maps generators onto buses
-bus_with_ongen = sum(gmap,2) > 0;
+% nmap  = sparse(mpc.bus(:,BUS_I),1,1:N.t);
+% E  = sparse([1:M,1:M].',[full(nmap(mpc.branch(:,F_BUS)));full(nmap(mpc.branch(:,T_BUS)))],[ones(M,1);-1*ones(M,1)],M,N.t);
+% F  = sparse(1:M,full(nmap(mpc.branch(:,F_BUS))),1,M,N.t);
+% T  = sparse(1:M,full(nmap(mpc.branch(:,T_BUS))),1,M,N.t);
+% gbus  = full(nmap(mpc.gen(:,GEN_BUS))); %generator buses
+% gstat = mpc.gen(:,GEN_STATUS) > 0;  % mask of dispatched generators
+% gmap  = sparse(gbus,1:G,gstat,N.t,G); %maps generators onto buses
+% bus_with_ongen = sum(gmap,2) > 0;
 
 %% bus types
-bidx = bustype_map(mpc,bus_with_ongen,gstat,nmap);
-N.pq = sum(bidx.pq); N.pv = sum(bidx.pv); N.ref= sum(bidx.ref);
+% bidx = bustype_map(mpc,bus_with_ongen,gstat,nmap);
+% N.pq = sum(bidx.pq); N.pv = sum(bidx.pv); N.ref= sum(bidx.ref);
 %% u0
 vg = ones(N.t,1); vg(gbus(gstat)) = mpc.gen(gstat,VG); 
 u0 = u0init(vg,bidx,'udefault',udefault);
@@ -51,32 +58,33 @@ theta_ref = mpc.bus(bidx.ref,VA)*pi/180;
 %% matrices fixing PV and Ref quantities
 % [matI,matU] = pv_ref_mats(bidx,N,u0);
 %% load and generation
-Sp = powervectors(mpc,gmap);
+% Sp = powervectors(mpc,gmap);
 Sp.Qg(bidx.pv) = 0;
 Sp.Qg(bidx.ref) = 0;
 Sp.Pg(bidx.ref) = 0;
 %% branch parts
-Sb = BranchParts(mpc);
+% Sb = BranchParts(mpc);
 Gw = branchweights(Sb,'GwAru',GwAru,'GwAmu',GwAmu,'bcmode',bcmode,'bshmode',bshmode);
-Sb.b    = Gw.b*Sb.b;
-Sb.balt = Gw.b*Sb.balt;
-Sb.bc   = Gw.bc*Sb.bc;
-Sb.bsh  = Gw.bsh*Sb.bsh;
-Sb.g    = Gw.g*Sb.g;
-Gw = branchweights(Sb);
+% Sb.b    = Gw.b*Sb.b;
+% Sb.balt = Gw.b*Sb.balt;
+% Sb.bc   = Gw.bc*Sb.bc;
+% Sb.bsh  = Gw.bsh*Sb.bsh;
+% Sb.g    = Gw.g*Sb.g;
+% Gw = branchweights(Sb);
 %% AC solution
-mpopt   = mpoption; mpopt.out.all = 0;
-mpcac   = runpf(mpc,mpopt);
-vtrue   = struct();
-vtrue.v = mpcac.bus(:,VM);        %true voltage magnitude solution
-vtrue.t = mpcac.bus(:,VA)*pi/180; %true voltage angle solution
-vtrue.phi = 0.5*(E*vtrue.t).^2;       %true phi (1/2)*(delta(theta))^2
-vtrue.pf  = mpcac.branch(:,PF);     %true real power at from bus [MW]
-vtrue.pt  = mpcac.branch(:,PT);     %true real power at to bus [MW]
-vtrue.qf  = mpcac.branch(:,QF);     %true reactive power at from bus [MVAr]
-vtrue.qt  = mpcac.branch(:,QT);     %true reactive power at to bus [MVAr]
-vtrue.sg  = gmap*(mpcac.gen(:,PG) + 1i*mpcac.gen(:,QG))/baseMVA;
-vtrue.residual = pfresidual(vtrue.v.*exp(1i*vtrue.t), myMakeYbus(F,T,Sb), real(vtrue.sg)-Sp.Pd, imag(vtrue.sg)-Sp.Qd );
+vtrue   = vtrue_struct(mpc,opmats,Sb,Sp);
+% mpopt   = mpoption; mpopt.out.all = 0;
+% mpcac   = runpf(mpc,mpopt);
+% vtrue   = struct();
+% vtrue.v = mpcac.bus(:,VM);        %true voltage magnitude solution
+% vtrue.t = mpcac.bus(:,VA)*pi/180; %true voltage angle solution
+% vtrue.phi = 0.5*(E*vtrue.t).^2;       %true phi (1/2)*(delta(theta))^2
+% vtrue.pf  = mpcac.branch(:,PF);     %true real power at from bus [MW]
+% vtrue.pt  = mpcac.branch(:,PT);     %true real power at to bus [MW]
+% vtrue.qf  = mpcac.branch(:,QF);     %true reactive power at from bus [MVAr]
+% vtrue.qt  = mpcac.branch(:,QT);     %true reactive power at to bus [MVAr]
+% vtrue.sg  = gmap*(mpcac.gen(:,PG) + 1i*mpcac.gen(:,QG))/baseMVA;
+% vtrue.residual = pfresidual(vtrue.v.*exp(1i*vtrue.t), myMakeYbus(F,T,Sb), real(vtrue.sg)-Sp.Pd, imag(vtrue.sg)-Sp.Qd );
 %% Main Loop
 
 ids  = str2ids(id);
@@ -96,7 +104,12 @@ Sg   = makeSg(vars,Sp,bidx,N);
 residual = pfresidual(vars.v.*exp(1i*vars.theta),myMakeYbus(F,T,Sb),real(Sg) - Sp.Pd, imag(Sg) - Sp.Qd);
 if plots
     vt_comp_plots(vars,vtrue, E, residual, bidx)
+    vars2 = alt_solve(ids,F,T,E,Sb,Sp,bidx,theta_ref,N,u0);
+    Sg2   = makeSg(vars2,Sp,bidx,N);
+    residual2 = pfresidual(vars2.v, myMakeYbus(F,T,Sb), real(Sg2) - Sp.Pd, imag(Sg2) - Sp.Qd);
+    vt_comp_plots(vars2,vtrue,E,residual2, bidx)
 end
+
 % Evalutaion criteria for flow calculation
 if length(id) ~= 13
     flids = flowids();

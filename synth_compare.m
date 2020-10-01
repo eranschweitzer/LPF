@@ -4,30 +4,32 @@ function [Thist, fitness, Tsamp, C, mpc] = synth_compare(synmpc, casename, varar
 %%% Name, Value:
 %%%     - plot, (true/false): if true plots are generated. Default False
 
-make_plots = varargin_parse(varargin,'plot', false);
-plt_title  = varargin_parse(varargin,'title', '');
+make_plots       = varargin_parse(varargin,'plot', false);
+plt_title        = varargin_parse(varargin,'title', '');
+vmin             = varargin_parse(varargin,'vmin', 0.9);
+vmax             = varargin_parse(varargin,'vmax', 1.1);
+use_softlims     = varargin_parse(varargin,'use_softlims', true);
+ref_uniform_cost = varargin_parse(varargin,'ref_uniform_cost', true);
 %% load case
 define_constants;
 mpopt = mpoption('opf.dc.solver', 'MIPS', 'opf.ac.solver', 'IPOPT', 'mips.step_control', 1);
 % mpopt.opf.init_from_mpc = 1;
 mpopt.out.all = 0;
 mpopt.verbose = 0;
-s = struct();
-for prop = {'VMAX', 'RATE_A', 'PMAX', 'QMIN', 'QMAX'}
-    %%% VMIN and PMIN are automatically set to with a bound of 0
-    s.(prop{1}).type = 'unbnd';
-end
-for prop = {'ANGMIN', 'ANGMAX'}
-    s.(prop{1}).type = 'none';
-end
 if ischar(synmpc)
     synmpc     = loadcase(synmpc);
 end
-synmpc.bus(:,VMAX) = 1.1;
-synmpc.bus(:,VMIN) = 0.9;
+synmpc.bus(:,VMAX) = vmax;
+synmpc.bus(:,VMIN) = vmin;
+if use_softlims
+    s = struct();
+    for prop = {'ANGMIN', 'ANGMAX'}
+        s.(prop{1}).hl_mod = 'none';
+    end
 
-synmpc.softlims = s;
-synmpc   = toggle_softlims(synmpc,'on');
+    synmpc.softlims = s;
+    synmpc   = toggle_softlims(synmpc,'on');
+end
 for k = 1:3
     mpcsolve = runopf(synmpc,mpopt);
     if mpcsolve.success
@@ -57,17 +59,19 @@ P  = calcPflow(0,0,vars,F,T,E,Sb);
 Q  = calcQflow(0,0,vars,F,T,E,Sb);
 S  = struct('f', abs(P.f + 1i*Q.f), 't', abs(P.t + 1i*Q.t));
 %% evaluate criteria between initial and AC solved case
-Cv  = eval_criteria(synmpc.bus(:,VM),mpcsolve.bus(:,VM));
-Ct  = eval_criteria(synmpc.bus(:,VA),mpcsolve.bus(:,VA));
-Cpf = eval_criteria(P.f*synmpc.baseMVA,mpcsolve.branch(:,PF));
-Cpt = eval_criteria(P.t*synmpc.baseMVA,mpcsolve.branch(:,PT));
-Cqf = eval_criteria(Q.f*synmpc.baseMVA,mpcsolve.branch(:,QF));
-Cqt = eval_criteria(Q.t*synmpc.baseMVA,mpcsolve.branch(:,QT));
-Csf = eval_criteria(S.f*synmpc.baseMVA,abs(mpcsolve.branch(:,PF) + 1i*mpcsolve.branch(:,QF)));
-Cst = eval_criteria(S.t*synmpc.baseMVA,abs(mpcsolve.branch(:,PT) + 1i*mpcsolve.branch(:,QT)));
-Cdelta = eval_criteria(E*synmpc.bus(:,VA),E*mpcsolve.bus(:,VA));
-C   = struct('v', Cv, 't', Ct, 'pf', Cpf, 'pt', Cpt, 'qf', Cqf, 'qt', Cqt,...
-             'sf', Csf, 'st', Cst, 'delta', Cdelta);
+if nargout > 3
+    Cv  = eval_criteria(synmpc.bus(:,VM),mpcsolve.bus(:,VM));
+    Ct  = eval_criteria(synmpc.bus(:,VA),mpcsolve.bus(:,VA));
+    Cpf = eval_criteria(P.f*synmpc.baseMVA,mpcsolve.branch(:,PF));
+    Cpt = eval_criteria(P.t*synmpc.baseMVA,mpcsolve.branch(:,PT));
+    Cqf = eval_criteria(Q.f*synmpc.baseMVA,mpcsolve.branch(:,QF));
+    Cqt = eval_criteria(Q.t*synmpc.baseMVA,mpcsolve.branch(:,QT));
+    Csf = eval_criteria(S.f*synmpc.baseMVA,abs(mpcsolve.branch(:,PF) + 1i*mpcsolve.branch(:,QF)));
+    Cst = eval_criteria(S.t*synmpc.baseMVA,abs(mpcsolve.branch(:,PT) + 1i*mpcsolve.branch(:,QT)));
+    Cdelta = eval_criteria(E*synmpc.bus(:,VA),E*mpcsolve.bus(:,VA));
+    C   = struct('v', Cv, 't', Ct, 'pf', Cpf, 'pt', Cpt, 'qf', Cqf, 'qt', Cqt,...
+                 'sf', Csf, 'st', Cst, 'delta', Cdelta);
+end
 %%
 Tsamp = struct('v',synmpc.bus(:,VM),'vtrue',mpcsolve.bus(:,VM),...
        'delta',full(E*synmpc.bus(:,VA)),'deltatrue',full(E*mpcsolve.bus(:,VA)),...
@@ -78,13 +82,18 @@ Tsamp = mystruct2table(Tsamp);
 %% comparison to a matpower case case
 if ischar(casename)
     mpc = loadcase(casename);
-    mpc.bus(:,VMAX) = 1.1;
-    mpc.bus(:,VMIN) = 0.9;
-    mpc.softlims = s;
-    sgc = size(mpc.gencost,1);
-    mpc.gencost(:,1) = 2;
-    mpc.gencos = [mpc.gencost(:,1:3) 2*ones(sgc,1) 10*ones(sgc,1) zeros(sgc,1)];
-    mpc = toggle_softlims(mpc, 'on');
+    mpc.bus(:,VMAX) = vmax;
+    mpc.bus(:,VMIN) = vmin;
+    
+    if ref_uniform_cost
+        sgc = size(mpc.gencost,1);
+        mpc.gencost(:,1) = 2;
+        mpc.gencost = [mpc.gencost(:,1:3) 2*ones(sgc,1) 10*ones(sgc,1) zeros(sgc,1)];
+    end
+    if use_softlims
+        mpc.softlims = s;
+        mpc = toggle_softlims(mpc, 'on');
+    end
     mpc = runopf(mpc,mpopt);
     if ~mpc.success
         error('Reference case failed to solve')

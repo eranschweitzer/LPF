@@ -7,7 +7,8 @@ lambda1 = 0.95;
 lambda2 = 0.95;
 casename = '../cycles/ERCOT_P16SP.m';
 casename = 'case_ACTIVSg2000';
-version = 2;
+casename = 'case118';
+version = 'fatemi';
 mpc = loadcase(casename);
 
 % mpc.bus(:,BS) = 0;

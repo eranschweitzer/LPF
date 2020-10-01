@@ -34,53 +34,90 @@ Sp = powervectors(mpc,gmap);
 %% branch parts
 Sb = BranchParts(mpc);
 
-%% real part
+%% real part (not that re(y^sh) = 0 i.e. only branch shunt susceptance)
 % equation (19)
-P = (Sp.Pg - Sp.Pd) - Sb.gsh - F'*(-(Sb.g.*log(Sb.tau) - Sb.b.*Sb.tshift)./Sb.tau) ...
+Pp = (Sp.Pg - Sp.Pd) - Sb.gsh - F'*(-(Sb.g.*log(Sb.tau) - Sb.b.*Sb.tshift)./Sb.tau) ...
     -T'*(Sb.g.*log(Sb.tau) - Sb.b.*Sb.tshift);
 
 % equation (20)
 gshp = (Sp.Pg - Sp.Pd) + Sb.gsh;
 
-% equation (21)
-gp   = F'*diags(Sb.g./Sb.tau)*E - T'*diags(Sb.g)*E;
+% equation (23)
+% gpold   = F'*diags(Sb.g./Sb.tau)*E - T'*diags(Sb.g)*E;
+gp   = -(F'*diags(Sb.g./Sb.tau)*T + T'*diags(Sb.g)*F);
+gpt  = diags(gshp) + (F'*diags(Sb.g./Sb.tau)*F + T'*diags(Sb.g)*T);
+% gpt  = gpt + gp;
+% equation (24)
 bp   = F'*diags(Sb.b./Sb.tau)*E - T'*diags(Sb.b)*E;
 
 %% reactive part
 % equation (28)
-Q = (Sp.Qd - Sp.Qg) - Sb.bsh - F'*( (Sb.bc/2 - (Sb.b.*log(Sb.tau) + Sb.g.*Sb.tshift))./Sb.tau.^2)...
-    -T'*(Sb.bc/2 + Sb.b.*log(Sb.tau) + Sb.g.*Sb.tshift);
+Qpp = -( (Sp.Qg - Sp.Qd) - Sb.bsh - F'*( (Sb.bc/2 - (Sb.b.*log(Sb.tau) + Sb.g.*Sb.tshift))./Sb.tau.^2)...
+    -T'*(Sb.bc/2 + Sb.b.*log(Sb.tau) + Sb.g.*Sb.tshift) );
 
 % equation (29)
-gpp = F'*diags(Sb.g./Sb.tau.^2)*E - T'*diags(Sb.g)*E;
-bpp = F'*diags(Sb.b./Sb.tau.^2)*E - T'*diags(Sb.b)*E;
+gpp  = F'*diags(Sb.g./Sb.tau.^2)*E - T'*diags(Sb.g)*E;
+% bpp = F'*diags(Sb.b./Sb.tau.^2)*E - T'*diags(Sb.b)*E;
+bpp  = -(F'*diags(Sb.b./Sb.tau.^2)*T + T'*diags(Sb.b)*F);
+bppt = -2*diags(Sp.Qg - Sp.Qd) + (F'*diags(Sb.b./Sb.tau.^2)*F + T'*diags(Sb.b)*T);
+% bppt = bppt + bpp;
+%% equation (53)
+A = [bp(bidx.pq, bidx.ref)  -gpt(bidx.pq,bidx.pv)  -gpt(bidx.pq,bidx.ref);
+     bp(bidx.pv, bidx.ref)  -gpt(bidx.pv,bidx.pv)  -gpt(bidx.pv,bidx.ref);
+     gpp(bidx.pq, bidx.ref)  bppt(bidx.pq,bidx.pv)  bppt(bidx.pq,bidx.ref)];
 
-%%
-Art = -bp;
-Aru = diags(gshp) + gp;
-Amt = gpp;
-Amu = diags(2*(Sp.Qd - Sp.Qg)) + bpp;
+vtilde = [Pp(bidx.pq); Pp(bidx.pv); Qpp(bidx.pq)] + ...
+          A*[theta_ref; u0(bidx.pv); u0(bidx.ref)];
+ 
+%% equation(52)
+A = [bp(bidx.pq,bidx.pq)  bp(bidx.pq,bidx.pv) -gpt(bidx.pq,bidx.pq);
+     bp(bidx.pv,bidx.pq)  bp(bidx.pv,bidx.pv) -gpt(bidx.pv,bidx.pq);
+     gpp(bidx.pq,bidx.pq) gpp(bidx.pq,bidx.pv) bppt(bidx.pq,bidx.pq)];
 
-matI = struct(); 
-matI.pv  = sparse(1:N.pv,find(bidx.pv),1, N.pv, N.t);
-matI.ref  = sparse(1:N.ref,find(bidx.ref),1, N.ref, N.t);
+x = -A\vtilde;
 
-matU = struct();
-matU.pv  = sparse(find(bidx.pv),1:N.pv,1-2*u0(bidx.pv), N.t, N.pv);
-matU.ref = sparse(find(bidx.ref),1:N.ref,1-2*u0(bidx.ref), N.t, N.ref);
-matU.refp = sparse(find(bidx.ref),1:N.ref,-1 + u0(bidx.ref), N.t, N.ref);
+%% variables
+vars = struct();
+vars.theta = zeros(N.t,1);
+vars.u     = zeros(N.t,1);
 
-A = [ Art              , Aru              , sparse(N.t,N.pv), matU.refp          , sparse(N.t, N.ref);
-      Amt              , Amu              , matU.pv         , sparse(N.t, N.ref) , matU.ref;
-      sparse(N.pv,N.t) , matI.pv          , sparse(N.pv, N.pv + 2*N.ref);
-      matI.ref         , sparse(N.ref,N.t), sparse(N.ref, N.pv + 2*N.ref);
-      sparse(N.ref,N.t), matI.ref         , sparse(N.ref, N.pv + 2*N.ref)];
-b = [P;Q; u0(bidx.pv); theta_ref; u0(bidx.ref)];
+% ref
+vars.theta(bidx.ref) = theta_ref;
+vars.u(bidx.ref)     = u0(bidx.ref);
 
-x = A\b;
-vars   = result_parse(x,u0,N);
-vars.v = exp(vars.uhat);
-vars.u0(:) = 0;
+% pv
+vars.theta(bidx.pv) = x(N.pq+1:N.pq+N.pv);
+vars.u(bidx.pv)     = u0(bidx.pv);
+
+%pq
+vars.theta(bidx.pq) = x(1:N.pq);
+vars.u(bidx.pq)     = x(N.pq+N.pv+1:end);
+% %%
+% Art = -bp;
+% Aru = diags(gshp) + gp;
+% Amt = gpp;
+% Amu = diags(2*(Sp.Qd - Sp.Qg)) + bpp;
+% 
+% matI = struct(); 
+% matI.pv  = sparse(1:N.pv,find(bidx.pv),1, N.pv, N.t);
+% matI.ref  = sparse(1:N.ref,find(bidx.ref),1, N.ref, N.t);
+% 
+% matU = struct();
+% matU.pv  = sparse(find(bidx.pv),1:N.pv,1-2*u0(bidx.pv), N.t, N.pv);
+% matU.ref = sparse(find(bidx.ref),1:N.ref,1-2*u0(bidx.ref), N.t, N.ref);
+% matU.refp = sparse(find(bidx.ref),1:N.ref,-1 + u0(bidx.ref), N.t, N.ref);
+% 
+% A = [ Art              , Aru              , sparse(N.t,N.pv), matU.refp          , sparse(N.t, N.ref);
+%       Amt              , Amu              , matU.pv         , sparse(N.t, N.ref) , matU.ref;
+%       sparse(N.pv,N.t) , matI.pv          , sparse(N.pv, N.pv + 2*N.ref);
+%       matI.ref         , sparse(N.ref,N.t), sparse(N.ref, N.pv + 2*N.ref);
+%       sparse(N.ref,N.t), matI.ref         , sparse(N.ref, N.pv + 2*N.ref)];
+% b = [P;Q; u0(bidx.pv); theta_ref; u0(bidx.ref)];
+% 
+% x = A\b;
+% vars   = result_parse(x,u0,N);
+vars.v = exp(vars.u);
+% vars.u0(:) = 0;
 flows = zhigangflow(vars,F,T,E,Sb);
 vars.sf = flows.f;
 vars.st = flows.t;
